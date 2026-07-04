@@ -1,0 +1,38 @@
+[
+  {
+    "client": "AIT Transport Soubre",
+    "ville": "Soubre",
+    "debut": "2026-05-28",
+    "expire": "2027-05-28",
+    "duree": "1an",
+    "cle": "AIT-20270528-B33F8037E2749782",
+    "createdAt": "2026-05-28T16:05:49.148Z"
+  },
+  {
+    "client": "AIT Transport Soubre",
+    "ville": "Soubre",
+    "debut": "2026-05-28",
+    "expire": "2027-05-28",
+    "duree": "1an",
+    "cle": "AIT-20270528-B33F8037E2749782",
+    "createdAt": "2026-05-28T16:08:09.438Z"
+  },
+  {
+    "client": "ARMEL",
+    "ville": "ARMEL",
+    "debut": "2026-07-04",
+    "expire": "2027-07-04",
+    "duree": "1an",
+    "cle": "AIT-20270704-45F33E1420E66E65",
+    "createdAt": "2026-07-04T16:57:27.931Z"
+  },
+  {
+    "client": "ARMEL",
+    "ville": "ARMEL",
+    "debut": "2026-07-04",
+    "expire": "2027-07-04",
+    "duree": "1an",
+    "cle": "AIT-20270704-45F33E1420E66E65",
+    "createdAt": "2026-07-04T17:00:00.390Z"
+  }
+]

@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model utilisateurs {
+  login     String  @id @db.VarChar(50)
+  password  String  @db.VarChar(100)
+  role      String  @db.VarChar(20)
+  agence_id String  @db.VarChar(50)
+  full_name String  @db.VarChar(100)
+  is_active Boolean @default(true)
+  @@map("utilisateurs")
+}
+
+model tickets {
+  numero        String   @id @db.VarChar(50)
+  trajet        String   @db.VarChar(150)
+  date          String   @db.VarChar(10)
+  heure         String   @db.VarChar(5)
+  sieges        String   @db.VarChar(200)
+  nom           String   @default("Client") @db.VarChar(100)
+  telephone     String   @default("") @db.VarChar(20)
+  paiement      String   @default("Especes") @db.VarChar(30)
+  montant       Int      @default(0)
+  statut        String   @default("vendu") @db.VarChar(20)
+  car_id        String   @default("") @db.VarChar(20)
+  car_matricule String   @default("") @db.VarChar(30)
+  car_model     String   @default("") @db.VarChar(50)
+  car_serial    String   @default("") @db.VarChar(20)
+  agence_id     String   @default("soubre") @db.VarChar(50)
+  created_at    DateTime @default(now())
+  @@index([date, agence_id])
+  @@map("tickets")
+}
+
+model departs {
+  id            String    @id @db.VarChar(80)
+  trajet        String    @db.VarChar(150)
+  date          String    @db.VarChar(10)
+  heure         String    @db.VarChar(5)
+  car_id        String    @default("") @db.VarChar(20)
+  car_matricule String    @default("") @db.VarChar(30)
+  chauffeur     String    @default("") @db.VarChar(100)
+  statut        String    @default("ouvert") @db.VarChar(20)
+  agence_id     String    @default("soubre") @db.VarChar(50)
+  cloture_at    DateTime?
+  created_at    DateTime  @default(now())
+  @@index([date, agence_id])
+  @@map("departs")
+}
+
+model agences {
+  id        String  @id @db.VarChar(50)
+  nom       String  @db.VarChar(100)
+  ville     String  @db.VarChar(100)
+  is_active Boolean @default(true)
+  @@map("agences")
+}
+
+model voyages {
+  id     Int    @id @default(autoincrement())
+  trajet String @db.VarChar(150)
+  prix   Int    @default(0)
+  @@map("voyages")
+}
+
+model chauffeurs {
+  id     String @id @db.VarChar(20)
+  nom    String @db.VarChar(100)
+  bus_id String @default("") @db.VarChar(20)
+  @@map("chauffeurs")
+}
+
+model depenses {
+  id          Int      @id @default(autoincrement())
+  car_id      String   @default("") @db.VarChar(20)
+  car_matricule String @default("") @db.VarChar(30)
+  date        String   @db.VarChar(10)
+  heure       String   @default("") @db.VarChar(5)
+  montant     Int      @default(0)
+  description String   @default("") @db.VarChar(200)
+  trajet      String   @default("") @db.VarChar(150)
+  chauffeur   String   @default("") @db.VarChar(100)
+  car_serial  String   @default("") @db.VarChar(20)
+  agence_id   String   @default("soubre") @db.VarChar(50)
+  created_at  DateTime @default(now())
+  @@map("depenses")
+}
