@@ -6,3 +6,6 @@ backend/logs/
 dist/
 backups/
 *.bak
+
+backup/
+*.sql
