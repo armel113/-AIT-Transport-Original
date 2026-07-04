@@ -772,15 +772,14 @@ function downloadDailyClosurePdf(
 // ─── SEAT GRID ────────────────────────────────────────────────────────────────
 
 function SeatGrid({ capacity, selected, sold, reserved, onToggle }: { capacity: number; selected: number[]; sold: number[]; reserved: number[]; onToggle: (s: number) => void; }) {
-  // Layout bus 2+2 : 2 sièges | couloir | 2 sièges
-  // Rangée 0 : CH (seul à gauche) | couloir | siège 2, siège 3
-  // Rangée n (n≥1) : s(n,0), s(n,1) | couloir | s(n,2), s(n,3)
-  // Numérotation : siège 1=CH, 2 et 3 à droite rangée 0, puis 4-7 rangée 1, 8-11 rangée 2, etc.
+  // Layout bus 3+2 : 3 sieges | couloir | 2 sieges
+  // Rangee 0 : CH(1), 2, 3 | couloir | 4, 5
+  // Rangee 1 : 6, 7, 8 | couloir | 9, 10 ... numerotation continue.
 
   const renderSeat = (seat: number | "CH" | "empty", key: string) => {
     if (seat === "empty") return <div key={key} className="sg-empty" />;
     if (seat === "CH") return (
-      <button key={key} type="button" disabled className="sg-seat sg-driver" title="Siège chauffeur">
+      <button key={key} type="button" disabled className="sg-seat sg-driver" title="Siege chauffeur">
         <span style={{ display: "block", fontSize: 10, lineHeight: 1 }}>1</span>
         <small style={{ fontSize: 7 }}>CH</small>
       </button>
@@ -789,49 +788,34 @@ function SeatGrid({ capacity, selected, sold, reserved, onToggle }: { capacity: 
     const isSold = sold.includes(n), isReserved = reserved.includes(n), isSelected = selected.includes(n);
     const cls = "sg-seat " + (isSold ? "sg-sold" : isReserved ? "sg-reserved" : isSelected ? "sg-selected" : "sg-free");
     return (
-      <button key={key} type="button" disabled={isSold || isReserved} onClick={() => onToggle(n)} className={cls} title={`Siège ${n}`}>
+      <button key={key} type="button" disabled={isSold || isReserved} onClick={() => onToggle(n)} className={cls} title={`Siege ${n}`}>
         {n}
       </button>
     );
   };
 
-  // Nombre total de sièges = capacity + 1 (siège 1 = chauffeur)
-  // capacity = sellableCapacity = capacite - 1
-  // On numérote : rangée 0 droite : 2,3 ; rangée 1 : 4,5 | 6,7 ; rangée 2 : 8,9 | 10,11 ...
-  const totalPassengerSeats = capacity; // sièges 2 … capacity+1
-  const totalRows = 1 + Math.ceil((totalPassengerSeats - 2) / 4);
+  // capacity = sieges vendables. Siege 1 = chauffeur (en plus).
+  // 5 positions par rangee (3 gauche + 2 droite), la 1re incluant le chauffeur.
+  const totalPassengerSeats = capacity;
+  const totalRows = Math.ceil((totalPassengerSeats + 1) / 5);
 
-  const seatAt = (row: number, col: number): number | "empty" => {
-    // row 0, col 0,1 = left side: CH + empty
-    // row 0, col 2,3 = right: 2, 3
-    // row n, col 0,1 = left: base+0, base+1
-    // row n, col 2,3 = right: base+2, base+3
-    if (row === 0) {
-      if (col === 0) return "CH" as any; // handled separately
-      if (col === 1) return "empty";
-      const n = col === 2 ? 2 : 3;
-      return n <= totalPassengerSeats + 1 ? n : "empty";
-    }
-    // Row 1: sièges 4,5 (gauche) et 6,7 (droite)
-    // Row 2: sièges 8,9 (gauche) et 10,11 (droite)
-    // base = première numéro de la rangée : row*4
-    const base = row * 4; // row1→4, row2→8, row3→12 ...
-    // col 0,1 = gauche (base, base+1) ; col 2,3 = droite (base+2, base+3)
-    const actual = base + col;
-    return actual <= totalPassengerSeats + 1 ? actual : "empty";
+  const seatAt = (row: number, col: number): number | "empty" | "CH" => {
+    const globalIndex = row * 5 + col; // position 0 = chauffeur
+    if (globalIndex === 0) return "CH";
+    const seatNumber = globalIndex + 1;
+    return seatNumber <= totalPassengerSeats + 1 ? seatNumber : "empty";
   };
 
   const rows: React.ReactNode[] = [];
   for (let row = 0; row < totalRows; row++) {
-    const leftSeats = row === 0
-      ? [renderSeat("CH", "s-ch"), renderSeat("empty", `se-${row}-1`)]
-      : [
-          renderSeat(seatAt(row, 0) as any, `s-${row}-0`),
-          renderSeat(seatAt(row, 1) as any, `s-${row}-1`),
-        ];
-    const rightSeats = [
+    const leftSeats = [
+      renderSeat(seatAt(row, 0) as any, `s-${row}-0`),
+      renderSeat(seatAt(row, 1) as any, `s-${row}-1`),
       renderSeat(seatAt(row, 2) as any, `s-${row}-2`),
+    ];
+    const rightSeats = [
       renderSeat(seatAt(row, 3) as any, `s-${row}-3`),
+      renderSeat(seatAt(row, 4) as any, `s-${row}-4`),
     ];
     rows.push(
       <div key={`row-${row}`} className="sg-row">
