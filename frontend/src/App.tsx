@@ -334,12 +334,6 @@ async function printTickets(
 
         <div class="line"></div>
 
-        <div class="row"><span>Bagages</span><strong>1 - Valise</strong></div>
-        <div class="row"><span>Poids</span><strong>15 kg</strong></div>
-        <div class="row"><span>Suppl. bagages</span><strong>0 FCFA</strong></div>
-
-        <div class="line"></div>
-
         <div class="total">TOTAL : ${fCfa(unit)} FCFA</div>
         <div class="row"><span>Paiement</span><strong>${paymentLabel}</strong></div>
 
@@ -347,6 +341,9 @@ async function printTickets(
 
         <div class="thanks">MERCI — BON VOYAGE</div>
         <div class="agency">A.I.T — SOUBRÉ</div>
+        <div class="contact">Tél : 07 79 87 36 32</div>
+
+        <div class="mentions">Tout ticket encaissé n'est plus remboursable.<br/>Conservez ce ticket jusqu'à destination.</div>
 
         <div class="cut">✂ ACCUEIL — CONTRÔLEUR — COMPTABILITÉ ✂</div>
 
@@ -422,6 +419,8 @@ async function printTickets(
             font-size: 11px;
           }
           .agency { margin-top: 1mm; }
+          .contact { text-align: center; font-size: 10px; font-weight: 700; margin-top: 1mm; }
+          .mentions { text-align: center; font-size: 8px; font-style: italic; margin: 3mm 2mm 0; line-height: 1.3; }
           .cut {
             text-align: center;
             border-top: 1px dashed #000;
@@ -773,9 +772,6 @@ function downloadDailyClosurePdf(
 
 function SeatGrid({ capacity, selected, sold, reserved, onToggle }: { capacity: number; selected: number[]; sold: number[]; reserved: number[]; onToggle: (s: number) => void; }) {
   // Layout bus 3+2 : 3 sieges | couloir | 2 sieges
-  // Rangee 0 : CH(1), 2, 3 | couloir | 4, 5
-  // Rangee 1 : 6, 7, 8 | couloir | 9, 10 ... numerotation continue.
-
   const renderSeat = (seat: number | "CH" | "empty", key: string) => {
     if (seat === "empty") return <div key={key} className="sg-empty" />;
     if (seat === "CH") return (
@@ -793,19 +789,14 @@ function SeatGrid({ capacity, selected, sold, reserved, onToggle }: { capacity: 
       </button>
     );
   };
-
-  // capacity = sieges vendables. Siege 1 = chauffeur (en plus).
-  // 5 positions par rangee (3 gauche + 2 droite), la 1re incluant le chauffeur.
   const totalPassengerSeats = capacity;
   const totalRows = Math.ceil((totalPassengerSeats + 1) / 5);
-
   const seatAt = (row: number, col: number): number | "empty" | "CH" => {
-    const globalIndex = row * 5 + col; // position 0 = chauffeur
+    const globalIndex = row * 5 + col;
     if (globalIndex === 0) return "CH";
     const seatNumber = globalIndex + 1;
     return seatNumber <= totalPassengerSeats + 1 ? seatNumber : "empty";
   };
-
   const rows: React.ReactNode[] = [];
   for (let row = 0; row < totalRows; row++) {
     const leftSeats = [
@@ -825,7 +816,6 @@ function SeatGrid({ capacity, selected, sold, reserved, onToggle }: { capacity: 
       </div>
     );
   }
-
   return <div className="sg-bus">{rows}</div>;
 }
 
@@ -2218,10 +2208,6 @@ const [cashDesks, setCashDesks] = useState<CashDesk[]>(readCashDesks);
                       <div className="rec-row"><span>Car</span><span>{activeCar?.carId} · {currentVehicleMatricule}</span></div>
                       <div className="rec-row"><span>Série car</span><span>{activeCarSerial}</span></div>
                       <div className="rec-row"><span>Siège(s)</span><span className="rec-seat">{selectedSeats.length > 0 ? selectedSeats.join(", ") : "—"}</span></div>
-                      <div className="rec-div" />
-                      <div className="rec-row"><span>Bagages</span><span>1 - Valise</span></div>
-                      <div className="rec-row"><span>Poids</span><span>15 kg</span></div>
-                      <div className="rec-row"><span>Suppl. bagages</span><span>0 FCFA</span></div>
                       <div className="rec-div" />
                       <div className="rec-total">TOTAL : {fmtFcfa(totalAmount)}</div>
                       <div className="rec-row"><span>Paiement</span><span>{mode === "vente" ? paymentMethod : "EN ATTENTE"}</span></div>
