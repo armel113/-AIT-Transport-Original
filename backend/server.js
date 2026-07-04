@@ -17,6 +17,8 @@ require("dotenv").config();
 
 const express          = require("express");
 const cors             = require("cors");
+const helmet           = require("helmet");
+const rateLimit        = require("express-rate-limit");
 const morgan           = require("morgan");
 const jwt              = require("jsonwebtoken");
 const bcrypt           = require("bcryptjs");
@@ -26,7 +28,7 @@ const path             = require("path");
 
 const app    = express();
 const PORT   = Number(process.env.PORT) || 3001;
-const SECRET = process.env.JWT_SECRET   || "ait_jwt_secret_2026";
+const SECRET = process.env.JWT_SECRET   || "3b43c07c8f8437dc2b2ce64b82e71b9db9efeeffec3293af77cf57b3d47b4c9d";
 const prisma = new PrismaClient({ log: ["error"] });
 
 // ─── LOGS ─────────────────────────────────────────────────────────────────────
@@ -47,6 +49,11 @@ const origins = (process.env.ALLOWED_ORIGINS || "")
 app.use(cors({ origin: origins, credentials: true }));
 app.use(express.json({ limit: "5mb" }));
 app.use(morgan("dev"));
+
+// --- SECURITE (ajoutee par BSIP - audit V3-PG) ---
+app.use(helmet({ contentSecurityPolicy: false }));
+const loginLimiter = rateLimit({ windowMs: 900000, max: 10, standardHeaders: true, legacyHeaders: false, message: { error: "Trop de tentatives de connexion. Reessayez dans 15 minutes." } });
+app.use("/api/login", loginLimiter);
 
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
 function auth(req, res, next) {
