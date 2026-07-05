@@ -1169,6 +1169,8 @@ const [cashDesks, setCashDesks] = useState<CashDesk[]>(readCashDesks);
   const [travelDate, setTravelDate] = useState(todayIso);
   const [travelTime, setTravelTime] = useState(ROUTES[0].horaires[0]);
   const [selectedCarId, setSelectedCarId] = useState("");
+  const [chauffeursList, setChauffeursList] = useState<{id:string;nom:string;bus_id:string}[]>([]);
+  useEffect(() => { apiJson("/api/chauffeurs").then((d:any)=>setChauffeursList(Array.isArray(d)?d:[])).catch(()=>{}); }, []);
   const [actualVehicleMatricule, setActualVehicleMatricule] = useState("");
   const [driverName, setDriverName] = useState("");
 
@@ -1995,7 +1997,11 @@ const [cashDesks, setCashDesks] = useState<CashDesk[]>(readCashDesks);
                   </div>
                   <div className="field" style={{ gridColumn: "span 2" }}>
                     <label>Chauffeur</label>
-                    <input className="inp" value={driverName} onChange={e => setDriverName(e.target.value)} placeholder="Nom du chauffeur" disabled={isClosed || isDayLocked || !userRole || hasStartedSales} />
+                    <select className="sel" value={driverName} onChange={e => setDriverName(e.target.value)} disabled={isClosed || isDayLocked || !userRole || hasStartedSales}>
+                      <option value="">— Choisir un chauffeur —</option>
+                      {chauffeursList.map(c => <option key={c.id} value={c.nom}>{c.nom}</option>)}
+                      {driverName && !chauffeursList.some(c => c.nom === driverName) && <option value={driverName}>{driverName}</option>}
+                    </select>
                   </div>
                 </div>
               </div>
@@ -2577,7 +2583,18 @@ function AdminPanel(props: {
   onCreateUser: () => void; onToggleUser: (id: string) => void; onDeleteUser: (id: string) => void; onSaveEditUser: () => void;
   fmtFcfa: (v: number) => string;
 }) {
-  const [adminTab, setAdminTab] = useState<"agences" | "trajets" | "caisses" | "utilisateurs">("agences");
+  const [adminTab, setAdminTab] = useState<"agences" | "trajets" | "caisses" | "utilisateurs" | "chauffeurs">("agences");
+  const [chauffeursAdmin, setChauffeursAdmin] = useState<{id:string;nom:string;bus_id:string}[]>([]);
+  const [newDriverName, setNewDriverName] = useState("");
+  const reloadChauffeursAdmin = () => { apiJson("/api/chauffeurs").then((d:any)=>setChauffeursAdmin(Array.isArray(d)?d:[])).catch(()=>{}); };
+  useEffect(() => { reloadChauffeursAdmin(); }, []);
+  const addChauffeurAdmin = async () => {
+    const nom = newDriverName.trim();
+    if (nom.length < 2) { alert("Nom du chauffeur requis."); return; }
+    const id = "CH-" + Date.now().toString(36).toUpperCase();
+    try { await apiJson("/api/chauffeurs", { method:"POST", body: JSON.stringify({ id, nom }) }); setNewDriverName(""); reloadChauffeursAdmin(); }
+    catch(err:any){ alert("Erreur: " + (err?.message||err)); }
+  };
   const { agencies, routes, enterpriseUsers, cashDesks, agencyUsers, agencyCashDesks, selectedAgency, selectedCashDesk, fmtFcfa } = props;
 
   const selectedRoute = routes.find(r => r.id === props.selectedRouteId) ?? routes[0];
@@ -2587,6 +2604,7 @@ function AdminPanel(props: {
     { id: "trajets" as const, label: "🚌 Trajets & Horaires" },
     { id: "caisses" as const, label: "🏪 Caisses vendeurs" },
     { id: "utilisateurs" as const, label: "👤 Utilisateurs" },
+    { id: "chauffeurs" as const, label: "🧑 Chauffeurs" },
   ];
 
   return (
@@ -2596,6 +2614,30 @@ function AdminPanel(props: {
           <button key={t.id} className={`admin-tab ${adminTab === t.id ? "at-active" : ""}`} onClick={() => setAdminTab(t.id)}>{t.label}</button>
         ))}
       </div>
+
+      {/* CHAUFFEURS */}
+      {adminTab === "chauffeurs" && (
+        <div className="grid-2">
+          <div className="card">
+            <div className="card-hd">Ajouter un chauffeur</div>
+            <div className="field"><label>Nom complet du chauffeur</label><input className="inp" value={newDriverName} onChange={e => setNewDriverName(e.target.value)} placeholder="Ex: KOUASSI Jean" /></div>
+            <div className="btn-row"><button className="btn btn-primary" onClick={addChauffeurAdmin}>+ Ajouter chauffeur</button></div>
+          </div>
+          <div className="card" style={{ gridColumn: "1/-1" }}>
+            <div className="card-hd">Tous les chauffeurs ({chauffeursAdmin.length})</div>
+            <div className="tbl-wrap">
+              <table className="tbl">
+                <thead><tr><th>Nom</th><th>Identifiant</th></tr></thead>
+                <tbody>
+                  {chauffeursAdmin.length === 0
+                    ? <tr><td colSpan={2} style={{ textAlign:"center", color:"#64748b" }}>Aucun chauffeur enregistré.</td></tr>
+                    : chauffeursAdmin.map(c => <tr key={c.id}><td><b>{c.nom}</b></td><td style={{ fontFamily:"JetBrains Mono,monospace", fontSize:12 }}>{c.id}</td></tr>)}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* AGENCES */}
       {adminTab === "agences" && (
