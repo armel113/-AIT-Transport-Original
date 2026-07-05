@@ -1925,7 +1925,7 @@ const [cashDesks, setCashDesks] = useState<CashDesk[]>(readCashDesks);
             .filter(t => {
               if (t.id === "vente") return true;
               if (t.id === "gestion") return !!userRole; // vendeur + gestionnaire + admin
-              if (t.id === "rapports") return isManager || isAdmin;
+              if (t.id === "rapports") return !!userRole; // vendeur + gestionnaire + admin (clôture de journée)
               if (t.id === "admin") return isManager || isAdmin;
               return false;
             })
@@ -2612,12 +2612,13 @@ function AdminPanel(props: {
   const [vModele, setVModele] = useState("");
   const [vImmat, setVImmat] = useState("");
   const [vPlaces, setVPlaces] = useState("65");
+  const [vChauffeur, setVChauffeur] = useState("");
   const reloadVehicules = () => { apiJson("/api/vehicules").then((d:any)=>setVehicules(Array.isArray(d)?d:[])).catch(()=>{}); };
   useEffect(() => { reloadVehicules(); }, []);
   const addVehicule = async () => {
     if (!vMarque.trim() && !vImmat.trim()) { alert("Renseignez au moins la marque et l'immatriculation."); return; }
     const id = "V-" + Date.now().toString(36).toUpperCase();
-    try { await apiJson("/api/vehicules", { method:"POST", body: JSON.stringify({ id, marque: vMarque.trim(), modele: vModele.trim(), immatriculation: vImmat.trim(), nb_places: parseInt(vPlaces)||65 }) }); setVMarque(""); setVModele(""); setVImmat(""); setVPlaces("65"); reloadVehicules(); }
+    try { await apiJson("/api/vehicules", { method:"POST", body: JSON.stringify({ id, marque: vMarque.trim(), modele: vModele.trim(), immatriculation: vImmat.trim(), nb_places: parseInt(vPlaces)||65, chauffeur_id: vChauffeur }) }); setVMarque(""); setVModele(""); setVImmat(""); setVPlaces("65"); setVChauffeur(""); reloadVehicules(); }
     catch(err:any){ alert("Erreur: " + (err?.message||err)); }
   };
   const editVehicule = async (v:any) => {
@@ -2662,17 +2663,18 @@ function AdminPanel(props: {
             <div className="field"><label>Modèle</label><input className="inp" value={vModele} onChange={e=>setVModele(e.target.value)} placeholder="Ex: Sprinter" /></div>
             <div className="field"><label>Immatriculation</label><input className="inp" value={vImmat} onChange={e=>setVImmat(e.target.value)} placeholder="Ex: AB-1234-CI" /></div>
             <div className="field"><label>Nombre de sièges</label><input className="inp" type="number" value={vPlaces} onChange={e=>setVPlaces(e.target.value)} placeholder="65" /></div>
+            <div className="field"><label>Chauffeur affecté (optionnel)</label><select className="sel" value={vChauffeur} onChange={e=>setVChauffeur(e.target.value)}><option value="">— Aucun —</option>{chauffeursAdmin.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}</select></div>
             <div className="btn-row"><button className="btn btn-primary" onClick={addVehicule}>+ Ajouter véhicule</button></div>
           </div>
           <div className="card" style={{ gridColumn: "1/-1" }}>
             <div className="card-hd">Tous les véhicules ({vehicules.length})</div>
             <div className="tbl-wrap">
               <table className="tbl">
-                <thead><tr><th>Marque</th><th>Modèle</th><th>Immatriculation</th><th>Places</th><th>Actions</th></tr></thead>
+                <thead><tr><th>Marque</th><th>Modèle</th><th>Immatriculation</th><th>Places</th><th>Chauffeur</th><th>Actions</th></tr></thead>
                 <tbody>
                   {vehicules.length === 0
-                    ? <tr><td colSpan={5} style={{ textAlign:"center", color:"#64748b" }}>Aucun véhicule enregistré.</td></tr>
-                    : vehicules.map(v => <tr key={v.id}><td><b>{v.marque}</b></td><td>{v.modele}</td><td style={{ fontFamily:"JetBrains Mono,monospace" }}>{v.immatriculation}</td><td>{v.nb_places}</td><td><button className="btn btn-sm" onClick={()=>editVehicule(v)}>✏️ Modifier</button> <button className="btn btn-sm btn-danger" onClick={()=>deleteVehicule(v.id, v.marque+" "+v.immatriculation)}>🗑 Supprimer</button></td></tr>)}
+                    ? <tr><td colSpan={6} style={{ textAlign:"center", color:"#64748b" }}>Aucun véhicule enregistré.</td></tr>
+                    : vehicules.map(v => <tr key={v.id}><td><b>{v.marque}</b></td><td>{v.modele}</td><td style={{ fontFamily:"JetBrains Mono,monospace" }}>{v.immatriculation}</td><td>{v.nb_places}</td><td>{chauffeursAdmin.find(c => c.id === v.chauffeur_id)?.nom || "—"}</td><td><button className="btn btn-sm" onClick={()=>editVehicule(v)}>✏️ Modifier</button> <button className="btn btn-sm btn-danger" onClick={()=>deleteVehicule(v.id, v.marque+" "+v.immatriculation)}>🗑 Supprimer</button></td></tr>)}
                 </tbody>
               </table>
             </div>
