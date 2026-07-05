@@ -1171,6 +1171,8 @@ const [cashDesks, setCashDesks] = useState<CashDesk[]>(readCashDesks);
   const [selectedCarId, setSelectedCarId] = useState("");
   const [chauffeursList, setChauffeursList] = useState<{id:string;nom:string;bus_id:string}[]>([]);
   useEffect(() => { apiJson("/api/chauffeurs").then((d:any)=>setChauffeursList(Array.isArray(d)?d:[])).catch(()=>{}); }, []);
+  const [vehiculesList, setVehiculesList] = useState<{id:string;marque:string;modele:string;immatriculation:string;nb_places:number;chauffeur_id:string}[]>([]);
+  useEffect(() => { apiJson("/api/vehicules").then((d:any)=>setVehiculesList(Array.isArray(d)?d:[])).catch(()=>{}); }, []);
   const [actualVehicleMatricule, setActualVehicleMatricule] = useState("");
   const [driverName, setDriverName] = useState("");
 
@@ -1286,18 +1288,20 @@ const [cashDesks, setCashDesks] = useState<CashDesk[]>(readCashDesks);
   useEffect(() => { if (!agencyCashDesks.length) return; if (!agencyCashDesks.some(c => c.id === selectedCashDeskId)) setSelectedCashDeskId(agencyCashDesks[0].id); }, [agencyCashDesks, selectedCashDeskId]);
   useEffect(() => { if (!selectedCashDesk) return; setDeskCanSell(selectedCashDesk.canSell); setDeskCanReserve(selectedCashDesk.canReserve); setDeskCanPrintReserve(selectedCashDesk.canPrintReserve); setDeskCanCancelReserve(selectedCashDesk.canCancelReserve); }, [selectedCashDesk]);
 
-  const plannedCarId = useMemo(() => selectedRoute.scheduleAssignments[travelTime] || selectedRoute.fleet[0]?.carId || "", [selectedRoute, travelTime]);
+  const dbFleet: FleetCar[] = useMemo(() => vehiculesList.map(v => ({ carId: v.id, carMatricule: v.immatriculation, carModel: (v.marque + " " + v.modele).trim() || v.immatriculation, capacite: (v.nb_places || 65) + 1 })), [vehiculesList]);
+  const activeFleet = dbFleet.length ? dbFleet : selectedRoute.fleet;
+  const plannedCarId = useMemo(() => selectedRoute.scheduleAssignments[travelTime] || activeFleet[0]?.carId || "", [selectedRoute, travelTime, activeFleet]);
 
   useEffect(() => {
     setSelectedCarId(plannedCarId);
-    const plannedCar = selectedRoute.fleet.find(c => c.carId === plannedCarId) ?? selectedRoute.fleet[0];
+    const plannedCar = activeFleet.find(c => c.carId === plannedCarId) ?? activeFleet[0];
     const nextKey = `${selectedRoute.id}__${travelDate}__${travelTime}`;
     const meta = readDepartureMeta()[nextKey];
     setActualVehicleMatricule(meta?.carMatricule || plannedCar?.carMatricule || "");
     setDriverName(meta?.chauffeur || "");
   }, [plannedCarId, selectedRoute, travelDate, travelTime]);
 
-  const activeCar = useMemo(() => selectedRoute.fleet.find(c => c.carId === selectedCarId) ?? selectedRoute.fleet[0], [selectedRoute, selectedCarId]);
+  const activeCar = useMemo(() => activeFleet.find(c => c.carId === selectedCarId) ?? activeFleet[0], [activeFleet, selectedCarId]);
   // Clé sans carId : un départ est identifié par route+date+heure uniquement
   const departureKey = `${selectedRoute.id}__${travelDate}__${travelTime}`;
   const isClosed = closedKeys.includes(departureKey);
@@ -1984,8 +1988,8 @@ const [cashDesks, setCashDesks] = useState<CashDesk[]>(readCashDesks);
                   </div>
                   <div className="field" style={{ gridColumn: "span 2" }}>
                     <label>Véhicule</label>
-                    <select className="sel" value={selectedCarId} onChange={e => { const cid = e.target.value; setSelectedCarId(cid); setSelectedSeats([]); const chosen = selectedRoute.fleet.find(x => x.carId === cid); if (chosen) setActualVehicleMatricule(chosen.carMatricule); }} disabled={isClosed || isDayLocked || !userRole || hasStartedSales}>
-                      {selectedRoute.fleet.map(c => <option key={c.carId} value={c.carId}>{c.carModel} – {Math.max(c.capacite - 1, 0)} places – {c.carMatricule}</option>)}
+                    <select className="sel" value={selectedCarId} onChange={e => { const cid = e.target.value; setSelectedCarId(cid); setSelectedSeats([]); const chosen = activeFleet.find(x => x.carId === cid); if (chosen) setActualVehicleMatricule(chosen.carMatricule); }} disabled={isClosed || isDayLocked || !userRole || hasStartedSales}>
+                      {activeFleet.map(c => <option key={c.carId} value={c.carId}>{c.carModel} – {Math.max(c.capacite - 1, 0)} places – {c.carMatricule}</option>)}
                     </select>
                   </div>
                   <div className="field" style={{ gridColumn: "span 2" }}>
