@@ -468,6 +468,43 @@ app.delete("/api/chauffeurs/:id", adminAuth, async (req, r) => {
   } catch(e) { r.status(503).json({ error: e.message }); }
 });
 
+// ─────────────────────────────────────────
+//  VEHICULES
+// ─────────────────────────────────────────
+app.get("/api/vehicules", auth, async (_q, r) => {
+  try { r.json(await prisma.vehicules.findMany({ where: { is_active: true }, orderBy: { marque: "asc" } })); }
+  catch(e) { r.status(503).json({ error: e.message }); }
+});
+
+app.post("/api/vehicules", adminAuth, async (req, r) => {
+  const { id, marque = "", modele = "", immatriculation = "", nb_places = 65, chauffeur_id = "", agence_id = "soubre" } = req.body || {};
+  if (!id) return r.status(400).json({ error: "id requis." });
+  try {
+    await prisma.vehicules.create({ data: { id, marque, modele, immatriculation, nb_places: parseInt(nb_places) || 65, chauffeur_id, agence_id } });
+    r.status(201).json({ ok: true });
+  } catch(e) { r.status(503).json({ error: e.message }); }
+});
+
+app.patch("/api/vehicules/:id", adminAuth, async (req, r) => {
+  const b = req.body || {};
+  const data = {};
+  ["marque","modele","immatriculation","chauffeur_id","agence_id"].forEach(k => { if (b[k] !== undefined) data[k] = b[k]; });
+  if (b.nb_places !== undefined) data.nb_places = parseInt(b.nb_places) || 65;
+  if (b.is_active !== undefined) data.is_active = !!b.is_active;
+  if (!Object.keys(data).length) return r.status(400).json({ error: "Rien a modifier." });
+  try {
+    await prisma.vehicules.update({ where: { id: req.params.id }, data });
+    r.json({ ok: true });
+  } catch(e) { r.status(503).json({ error: e.message }); }
+});
+
+app.delete("/api/vehicules/:id", adminAuth, async (req, r) => {
+  try {
+    await prisma.vehicules.delete({ where: { id: req.params.id } });
+    r.json({ ok: true });
+  } catch(e) { r.status(503).json({ error: e.message }); }
+});
+
 // ═════════════════════════════════════════════════════════════════════════════
 //  TRANSPORTS (vue combinée départs + tickets)
 // ═════════════════════════════════════════════════════════════════════════════

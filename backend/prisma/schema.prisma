@@ -91,3 +91,15 @@ model depenses {
   created_at  DateTime @default(now())
   @@map("depenses")
 }
+
+model vehicules {
+  id              String  @id @db.VarChar(20)
+  marque          String  @default("") @db.VarChar(50)
+  modele          String  @default("") @db.VarChar(50)
+  immatriculation String  @default("") @db.VarChar(30)
+  nb_places       Int     @default(65)
+  chauffeur_id    String  @default("") @db.VarChar(20)
+  agence_id       String  @default("soubre") @db.VarChar(50)
+  is_active       Boolean @default(true)
+  @@map("vehicules")
+}

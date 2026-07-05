@@ -2580,7 +2580,7 @@ function AdminPanel(props: {
   onCreateUser: () => void; onToggleUser: (id: string) => void; onDeleteUser: (id: string) => void; onSaveEditUser: () => void;
   fmtFcfa: (v: number) => string;
 }) {
-  const [adminTab, setAdminTab] = useState<"agences" | "trajets" | "caisses" | "utilisateurs" | "chauffeurs">("agences");
+  const [adminTab, setAdminTab] = useState<"agences" | "trajets" | "caisses" | "utilisateurs" | "chauffeurs" | "vehicules">("agences");
   const [chauffeursAdmin, setChauffeursAdmin] = useState<{id:string;nom:string;bus_id:string}[]>([]);
   const [newDriverName, setNewDriverName] = useState("");
   const reloadChauffeursAdmin = () => { apiJson("/api/chauffeurs").then((d:any)=>setChauffeursAdmin(Array.isArray(d)?d:[])).catch(()=>{}); };
@@ -2603,6 +2603,31 @@ function AdminPanel(props: {
     try { await apiJson("/api/chauffeurs/" + encodeURIComponent(id), { method:"DELETE" }); reloadChauffeursAdmin(); }
     catch(err:any){ alert("Erreur: " + (err?.message||err)); }
   };
+  const [vehicules, setVehicules] = useState<{id:string;marque:string;modele:string;immatriculation:string;nb_places:number;chauffeur_id:string}[]>([]);
+  const [vMarque, setVMarque] = useState("");
+  const [vModele, setVModele] = useState("");
+  const [vImmat, setVImmat] = useState("");
+  const [vPlaces, setVPlaces] = useState("65");
+  const reloadVehicules = () => { apiJson("/api/vehicules").then((d:any)=>setVehicules(Array.isArray(d)?d:[])).catch(()=>{}); };
+  useEffect(() => { reloadVehicules(); }, []);
+  const addVehicule = async () => {
+    if (!vMarque.trim() && !vImmat.trim()) { alert("Renseignez au moins la marque et l'immatriculation."); return; }
+    const id = "V-" + Date.now().toString(36).toUpperCase();
+    try { await apiJson("/api/vehicules", { method:"POST", body: JSON.stringify({ id, marque: vMarque.trim(), modele: vModele.trim(), immatriculation: vImmat.trim(), nb_places: parseInt(vPlaces)||65 }) }); setVMarque(""); setVModele(""); setVImmat(""); setVPlaces("65"); reloadVehicules(); }
+    catch(err:any){ alert("Erreur: " + (err?.message||err)); }
+  };
+  const editVehicule = async (v:any) => {
+    const immatriculation = (window.prompt("Immatriculation :", v.immatriculation) || "").trim();
+    if (!immatriculation) return;
+    const places = (window.prompt("Nombre de places :", String(v.nb_places)) || "").trim();
+    try { await apiJson("/api/vehicules/" + encodeURIComponent(v.id), { method:"PATCH", body: JSON.stringify({ immatriculation, nb_places: parseInt(places)||v.nb_places }) }); reloadVehicules(); }
+    catch(err:any){ alert("Erreur: " + (err?.message||err)); }
+  };
+  const deleteVehicule = async (id:string, label:string) => {
+    if (!window.confirm("Supprimer le véhicule \"" + label + "\" ?")) return;
+    try { await apiJson("/api/vehicules/" + encodeURIComponent(id), { method:"DELETE" }); reloadVehicules(); }
+    catch(err:any){ alert("Erreur: " + (err?.message||err)); }
+  };
   const { agencies, routes, enterpriseUsers, cashDesks, agencyUsers, agencyCashDesks, selectedAgency, selectedCashDesk, fmtFcfa } = props;
 
   const selectedRoute = routes.find(r => r.id === props.selectedRouteId) ?? routes[0];
@@ -2613,6 +2638,7 @@ function AdminPanel(props: {
     { id: "caisses" as const, label: "🏪 Caisses vendeurs" },
     { id: "utilisateurs" as const, label: "👤 Utilisateurs" },
     { id: "chauffeurs" as const, label: "🧑 Chauffeurs" },
+    { id: "vehicules" as const, label: "🚌 Véhicules" },
   ];
 
   return (
@@ -2622,6 +2648,33 @@ function AdminPanel(props: {
           <button key={t.id} className={`admin-tab ${adminTab === t.id ? "at-active" : ""}`} onClick={() => setAdminTab(t.id)}>{t.label}</button>
         ))}
       </div>
+
+      {/* VEHICULES */}
+      {adminTab === "vehicules" && (
+        <div className="grid-2">
+          <div className="card">
+            <div className="card-hd">Ajouter un véhicule</div>
+            <div className="field"><label>Marque</label><input className="inp" value={vMarque} onChange={e=>setVMarque(e.target.value)} placeholder="Ex: Mercedes" /></div>
+            <div className="field"><label>Modèle</label><input className="inp" value={vModele} onChange={e=>setVModele(e.target.value)} placeholder="Ex: Sprinter" /></div>
+            <div className="field"><label>Immatriculation</label><input className="inp" value={vImmat} onChange={e=>setVImmat(e.target.value)} placeholder="Ex: AB-1234-CI" /></div>
+            <div className="field"><label>Nombre de sièges</label><input className="inp" type="number" value={vPlaces} onChange={e=>setVPlaces(e.target.value)} placeholder="65" /></div>
+            <div className="btn-row"><button className="btn btn-primary" onClick={addVehicule}>+ Ajouter véhicule</button></div>
+          </div>
+          <div className="card" style={{ gridColumn: "1/-1" }}>
+            <div className="card-hd">Tous les véhicules ({vehicules.length})</div>
+            <div className="tbl-wrap">
+              <table className="tbl">
+                <thead><tr><th>Marque</th><th>Modèle</th><th>Immatriculation</th><th>Places</th><th>Actions</th></tr></thead>
+                <tbody>
+                  {vehicules.length === 0
+                    ? <tr><td colSpan={5} style={{ textAlign:"center", color:"#64748b" }}>Aucun véhicule enregistré.</td></tr>
+                    : vehicules.map(v => <tr key={v.id}><td><b>{v.marque}</b></td><td>{v.modele}</td><td style={{ fontFamily:"JetBrains Mono,monospace" }}>{v.immatriculation}</td><td>{v.nb_places}</td><td><button className="btn btn-sm" onClick={()=>editVehicule(v)}>✏️ Modifier</button> <button className="btn btn-sm btn-danger" onClick={()=>deleteVehicule(v.id, v.marque+" "+v.immatriculation)}>🗑 Supprimer</button></td></tr>)}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* CHAUFFEURS */}
       {adminTab === "chauffeurs" && (
