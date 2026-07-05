@@ -2592,6 +2592,17 @@ function AdminPanel(props: {
     try { await apiJson("/api/chauffeurs", { method:"POST", body: JSON.stringify({ id, nom }) }); setNewDriverName(""); reloadChauffeursAdmin(); }
     catch(err:any){ alert("Erreur: " + (err?.message||err)); }
   };
+  const editChauffeurAdmin = async (id: string, ancien: string) => {
+    const nom = (window.prompt("Nouveau nom du chauffeur :", ancien) || "").trim();
+    if (!nom || nom === ancien) return;
+    try { await apiJson("/api/chauffeurs/" + encodeURIComponent(id), { method:"PATCH", body: JSON.stringify({ nom }) }); reloadChauffeursAdmin(); }
+    catch(err:any){ alert("Erreur: " + (err?.message||err)); }
+  };
+  const deleteChauffeurAdmin = async (id: string, nom: string) => {
+    if (!window.confirm("Supprimer le chauffeur \"" + nom + "\" ?")) return;
+    try { await apiJson("/api/chauffeurs/" + encodeURIComponent(id), { method:"DELETE" }); reloadChauffeursAdmin(); }
+    catch(err:any){ alert("Erreur: " + (err?.message||err)); }
+  };
   const { agencies, routes, enterpriseUsers, cashDesks, agencyUsers, agencyCashDesks, selectedAgency, selectedCashDesk, fmtFcfa } = props;
 
   const selectedRoute = routes.find(r => r.id === props.selectedRouteId) ?? routes[0];
@@ -2624,11 +2635,11 @@ function AdminPanel(props: {
             <div className="card-hd">Tous les chauffeurs ({chauffeursAdmin.length})</div>
             <div className="tbl-wrap">
               <table className="tbl">
-                <thead><tr><th>Nom</th><th>Identifiant</th></tr></thead>
+                <thead><tr><th>Nom</th><th>Identifiant</th><th>Actions</th></tr></thead>
                 <tbody>
                   {chauffeursAdmin.length === 0
-                    ? <tr><td colSpan={2} style={{ textAlign:"center", color:"#64748b" }}>Aucun chauffeur enregistré.</td></tr>
-                    : chauffeursAdmin.map(c => <tr key={c.id}><td><b>{c.nom}</b></td><td style={{ fontFamily:"JetBrains Mono,monospace", fontSize:12 }}>{c.id}</td></tr>)}
+                    ? <tr><td colSpan={3} style={{ textAlign:"center", color:"#64748b" }}>Aucun chauffeur enregistré.</td></tr>
+                    : chauffeursAdmin.map(c => <tr key={c.id}><td><b>{c.nom}</b></td><td style={{ fontFamily:"JetBrains Mono,monospace", fontSize:12 }}>{c.id}</td><td><button className="btn btn-sm" onClick={() => editChauffeurAdmin(c.id, c.nom)}>✏️ Modifier</button> <button className="btn btn-sm btn-danger" onClick={() => deleteChauffeurAdmin(c.id, c.nom)}>🗑 Supprimer</button></td></tr>)}
                 </tbody>
               </table>
             </div>

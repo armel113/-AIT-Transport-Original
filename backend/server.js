@@ -449,6 +449,25 @@ app.post("/api/chauffeurs", adminAuth, async (req, r) => {
   } catch(e) { r.status(503).json({ error: e.message }); }
 });
 
+app.patch("/api/chauffeurs/:id", adminAuth, async (req, r) => {
+  const { nom, bus_id } = req.body || {};
+  const data = {};
+  if (nom !== undefined) data.nom = nom;
+  if (bus_id !== undefined) data.bus_id = bus_id;
+  if (!Object.keys(data).length) return r.status(400).json({ error: "Rien a modifier." });
+  try {
+    await prisma.chauffeurs.update({ where: { id: req.params.id }, data });
+    r.json({ ok: true });
+  } catch(e) { r.status(503).json({ error: e.message }); }
+});
+
+app.delete("/api/chauffeurs/:id", adminAuth, async (req, r) => {
+  try {
+    await prisma.chauffeurs.delete({ where: { id: req.params.id } });
+    r.json({ ok: true });
+  } catch(e) { r.status(503).json({ error: e.message }); }
+});
+
 // ═════════════════════════════════════════════════════════════════════════════
 //  TRANSPORTS (vue combinée départs + tickets)
 // ═════════════════════════════════════════════════════════════════════════════
