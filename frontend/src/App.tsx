@@ -1037,7 +1037,10 @@ function LoginModal({ onLogin, agencies }: { onClose: () => void; onLogin: (user
       <style>{`
         .lc{background:rgba(255,255,255,0.04);backdrop-filter:blur(24px);border:1px solid rgba(245,200,66,0.15);border-radius:18px;padding:50px 42px;width:100%;max-width:420px;box-shadow:0 30px 80px rgba(0,0,0,0.6);}
         .lc-logo{text-align:center;margin-bottom:12px;}
-        .lc-logo img{width:100px;height:100px;border-radius:14px;object-fit:cover;border:2px solid rgba(245,200,66,0.25);box-shadow:0 8px 32px rgba(0,0,0,0.5);}
+        .lc-logo img{width:100px;height:100px;border-radius:14px;object-fit:cover;border:2px solid rgba(245,200,66,0.25);box-shadow:0 8px 32px rgba(0,0,0,0.5);animation:lcLogoIn 0.9s cubic-bezier(0.22,1,0.36,1) both, lcLogoFloat 3.5s ease-in-out 0.9s infinite, lcLogoGlow 3.5s ease-in-out 0.9s infinite;}
+        @keyframes lcLogoIn{0%{opacity:0;transform:scale(0.6) translateY(12px) rotate(-6deg);}100%{opacity:1;transform:scale(1) translateY(0) rotate(0);}}
+        @keyframes lcLogoFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-7px);}}
+        @keyframes lcLogoGlow{0%,100%{box-shadow:0 8px 32px rgba(0,0,0,0.5),0 0 0 0 rgba(245,200,66,0.0);border-color:rgba(245,200,66,0.25);}50%{box-shadow:0 12px 40px rgba(0,0,0,0.55),0 0 26px 4px rgba(245,200,66,0.35);border-color:rgba(245,200,66,0.6);}}
         .lc-title{text-align:center;color:#f5c842;font-size:18px;font-weight:800;letter-spacing:1px;margin-bottom:3px;}
         .lc-sub{text-align:center;color:#3a5a7a;font-size:11px;text-transform:uppercase;letter-spacing:2px;margin-bottom:36px;}
         .lc-group{margin-bottom:18px;}
@@ -1349,6 +1352,12 @@ const [cashDesks, setCashDesks] = useState<CashDesk[]>(readCashDesks);
   const totalMois = useMemo(() => ventesDuMois.reduce((s, t) => s + t.montant, 0), [ventesDuMois]);
   const depensesMois = useMemo(() => depenses.filter(d => d.date.startsWith(travelDate.slice(0, 7))), [depenses, travelDate]);
   const totalDepensesMois = useMemo(() => depensesMois.reduce((s, d) => s + d.montant, 0), [depensesMois]);
+  const monthChartData = useMemo(() => {
+    const ym = travelDate.slice(0, 7);
+    const byDay: Record<string, number> = {};
+    tickets.filter(t => t.date && t.date.startsWith(ym) && t.statut === "vendu").forEach(t => { byDay[t.date] = (byDay[t.date] || 0) + t.montant; });
+    return Object.keys(byDay).sort().map(d => ({ jour: d.slice(8, 10), montant: byDay[d] }));
+  }, [tickets, travelDate]);
 
   const departureSummaries = useMemo(() => {
     const metaMap = readDepartureMeta();
@@ -2060,7 +2069,7 @@ const [cashDesks, setCashDesks] = useState<CashDesk[]>(readCashDesks);
 
                   {/* Tabs vente / réservation */}
                   <div className="mode-tabs">
-                    <button className={`mode-tab ${mode === "vente" ? "active-vente" : ""}`} onClick={() => setMode("vente")}>🎫 Vente directe &amp; réservation</button>
+                    <button className={`mode-tab ${mode === "vente" ? "active-vente" : ""}`} onClick={() => setMode("vente")}>🎫 Vente directe</button>
                     <button className={`mode-tab ${mode === "reservation" ? "active-res" : ""}`} onClick={() => setMode("reservation")}>📋 Billets réservés</button>
                   </div>
 
@@ -2442,6 +2451,47 @@ const [cashDesks, setCashDesks] = useState<CashDesk[]>(readCashDesks);
                       <div className="stat stat-blue"><div className="stat-lbl">Ventes mois</div><div className="stat-val">{ventesDuMois.length}</div><div className="stat-sub">{fmtFcfa(totalMois)}</div></div>
                       <div className="stat stat-red"><div className="stat-lbl">Dépenses mois</div><div className="stat-val" style={{ fontSize: 16 }}>{fmtFcfa(totalDepensesMois)}</div></div>
                     </div>
+                  </div>
+
+                  <div className="card">
+                    <div className="card-hd">📈 Évolution des ventes — {travelDate.slice(0, 7)}</div>
+                    {monthChartData.length === 0 ? (
+                      <p className="info-msg">Aucune vente ce mois pour afficher le graphique.</p>
+                    ) : (() => {
+                      const maxV = Math.max(...monthChartData.map(d => d.montant), 1);
+                      const W = 520, H = 200, pad = 28, n = monthChartData.length;
+                      const bw = Math.max(6, Math.min(34, (W - pad * 2) / n - 6));
+                      const gap = ((W - pad * 2) - bw * n) / Math.max(n - 1, 1);
+                      return (
+                        <div style={{ overflowX: "auto" }}>
+                          <style>{`@keyframes barRise{from{transform:scaleY(0);}to{transform:scaleY(1);}}`}</style>
+                          <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", minWidth: 320, maxWidth: 620 }}>
+                            <defs>
+                              <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#f5d020" />
+                                <stop offset="100%" stopColor="#e0951f" />
+                              </linearGradient>
+                            </defs>
+                            {[0.25, 0.5, 0.75, 1].map((f, i) => (
+                              <line key={i} x1={pad} y1={H - pad - f * (H - pad * 2)} x2={W - pad} y2={H - pad - f * (H - pad * 2)} stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+                            ))}
+                            <line x1={pad} y1={H - pad} x2={W - pad} y2={H - pad} stroke="rgba(255,255,255,0.2)" strokeWidth="1" />
+                            {monthChartData.map((d, i) => {
+                              const h = (d.montant / maxV) * (H - pad * 2);
+                              const x = pad + i * (bw + gap);
+                              const y = H - pad - h;
+                              return (
+                                <g key={i}>
+                                  <rect x={x} y={y} width={bw} height={h} rx="3" fill="url(#barGrad)" style={{ transformOrigin: `${x + bw / 2}px ${H - pad}px`, animation: `barRise 0.8s cubic-bezier(0.22,1,0.36,1) ${i * 0.04}s both` }} />
+                                  <text x={x + bw / 2} y={H - pad + 12} textAnchor="middle" fontSize="8" fill="#6b7fa8">{d.jour}</text>
+                                </g>
+                              );
+                            })}
+                          </svg>
+                          <div style={{ textAlign: "center", fontSize: 12, color: "#6b7fa8", marginTop: 4 }}>Recette par jour (max : {fmtFcfa(maxV)})</div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
 
