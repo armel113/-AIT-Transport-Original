@@ -123,8 +123,8 @@ const DEFAULT_CASH_DESKS: CashDesk[] = [
 
 const soubreFleet: FleetCar[] = [
   { carId: "C2", carMatricule: "AB-5678-CI", carModel: "Mercedes Sprinter", capacite: 65 },
-  { carId: "C5", carMatricule: "AB-8765-CI", carModel: "Toyota Coaster", capacite: 65 },
-  { carId: "C8", carMatricule: "AB-8888-CI", carModel: "Temsa Safari", capacite: 65 },
+  { carId: "C5", carMatricule: "AB-8765-CI", carModel: "Toyota Coaster", capacite: 66 },
+  { carId: "C8", carMatricule: "CD-5678-CI", carModel: "Hyundai County", capacite: 73 },
 ];
 
 const soubreAssign: Record<string, string> = {
@@ -291,7 +291,8 @@ async function printTickets(
   heure: string,
   seats: number[],
   total: number,
-  statutLabel = "VENDU"
+  statutLabel = "VENDU",
+  chauffeur = ""
 ): Promise<void> {
   if (seats.length === 0) return;
 
@@ -330,6 +331,7 @@ async function printTickets(
         <div class="row"><span>Trajet</span><strong>${agenceLabel}</strong></div>
         <div class="row"><span>Heure</span><strong>${heure}</strong></div>
         <div class="row"><span>Car</span><strong>${car.carId} · ${actualMatricule || car.carMatricule}</strong></div>
+        ${chauffeur ? `<div class="row"><span>Chauffeur</span><strong>${chauffeur}</strong></div>` : ""}
         <div class="row"><span>Siège</span><strong class="big-seat">${seat}</strong></div>
 
         <div class="line"></div>
@@ -381,12 +383,12 @@ async function printTickets(
           }
           .ticket-header { text-align: center; }
           .logo-box {
-            width: 50mm;
+            width: 28mm;
             margin: 0 auto 2mm;
             text-align: center;
           }
           .ticket-logo {
-            width: 50mm;
+            width: 28mm;
             height: auto;
             display: block;
             margin: 0 auto;
@@ -1391,7 +1393,7 @@ const [cashDesks, setCashDesks] = useState<CashDesk[]>(readCashDesks);
     setConnStatus(result.remote ? "online" : "offline");
     refreshTickets();
     showToast(result.remote ? `Ticket ${numero} synchronisé ✓` : `Enregistré localement. ${result.errorMsg || ""}`, result.remote ? "success" : "warning");
-    void printTickets(result.numero, selectedRoute, activeCar, currentVehicleMatricule, activeCarSerial, travelDate, travelTime, selectedSeats, totalAmount);
+    void printTickets(result.numero, selectedRoute, activeCar, currentVehicleMatricule, activeCarSerial, travelDate, travelTime, selectedSeats, totalAmount, "VENDU", driverName.trim());
     setSelectedSeats([]);
   }
 
@@ -1413,7 +1415,7 @@ const [cashDesks, setCashDesks] = useState<CashDesk[]>(readCashDesks);
     setConnStatus(result.remote ? "online" : "offline");
     refreshTickets();
     showToast(result.remote ? `Réservation ${numero} synchronisée ✓` : "Réservation enregistrée localement.", result.remote ? "success" : "warning");
-    printTickets(result.numero, selectedRoute, activeCar, currentVehicleMatricule, activeCarSerial, travelDate, travelTime, selectedSeats, totalAmount, "RÉSERVÉ");
+    printTickets(result.numero, selectedRoute, activeCar, currentVehicleMatricule, activeCarSerial, travelDate, travelTime, selectedSeats, totalAmount, "RÉSERVÉ", driverName.trim());
     setResNom(""); setResPhone(""); setSelectedSeats([]);
   }
 
@@ -1979,6 +1981,12 @@ const [cashDesks, setCashDesks] = useState<CashDesk[]>(readCashDesks);
                     <label>Heure</label>
                     <select className="sel" value={travelTime} onChange={e => { setTravelTime(e.target.value); setSelectedSeats([]); }}>
                       {selectedRoute.horaires.map(h => <option key={h}>{h}</option>)}
+                    </select>
+                  </div>
+                  <div className="field" style={{ gridColumn: "span 2" }}>
+                    <label>Véhicule</label>
+                    <select className="sel" value={selectedCarId} onChange={e => { setSelectedCarId(e.target.value); setSelectedSeats([]); }} disabled={isClosed || isDayLocked || !userRole || hasStartedSales}>
+                      {selectedRoute.fleet.map(c => <option key={c.carId} value={c.carId}>{c.carModel} – {Math.max(c.capacite - 1, 0)} places – {c.carMatricule}</option>)}
                     </select>
                   </div>
                   <div className="field" style={{ gridColumn: "span 2" }}>
