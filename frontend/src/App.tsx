@@ -1530,10 +1530,7 @@ const [cashDesks, setCashDesks] = useState<CashDesk[]>(readCashDesks);
       `Confirmer la cloture journaliere ?`
     )) return;
 
-    // 1. Impression 80mm immédiate
-    printDailyClosure80mm(travelDate, dailyDepartureBreakdown, totalVentes, totalCarburant);
-
-    // 2. PDF A4 pour archivage
+    // Clôture du jour en format A4 uniquement (impression 80mm retirée)
     const fileName = downloadDailyClosurePdf(travelDate, ventes, carburant, dailyDepartureBreakdown);
     const archive: DailyPdfArchive = {
       id: `PDF-${travelDate}-${Date.now()}`, date: travelDate, fileName,
@@ -1544,7 +1541,7 @@ const [cashDesks, setCashDesks] = useState<CashDesk[]>(readCashDesks);
     };
     const updated = [archive, ...dailyPdfArchives]; setDailyPdfArchives(updated); writeDailyPdfArchives(updated);
     const updatedLocks = Array.from(new Set([...dailyLocks, travelDate])); setDailyLocks(updatedLocks); writeDailyLocks(updatedLocks);
-    showToast("Journée clôturée — bon 80mm + PDF imprimés.", "success");
+    showToast("Journée clôturée — bilan A4 imprimé.", "success");
   }
 
   function handleAdminLogin() {
