@@ -292,7 +292,8 @@ async function printTickets(
   seats: number[],
   total: number,
   statutLabel = "VENDU",
-  chauffeur = ""
+  chauffeur = "",
+  departureLabel = ""
 ): Promise<void> {
   if (seats.length === 0) return;
 
@@ -330,6 +331,7 @@ async function printTickets(
 
         <div class="row"><span>Trajet</span><strong>${agenceLabel}</strong></div>
         <div class="row"><span>Heure</span><strong>${heure}</strong></div>
+        ${departureLabel ? `<div class="row"><span>Départ</span><strong>${departureLabel}</strong></div>` : ""}
         <div class="row"><span>Car</span><strong>${car.carId} · ${actualMatricule || car.carMatricule}</strong></div>
         ${chauffeur ? `<div class="row"><span>Chauffeur</span><strong>${chauffeur}</strong></div>` : ""}
         <div class="row"><span>Siège</span><strong class="big-seat">${seat}</strong></div>
@@ -1304,6 +1306,14 @@ const [cashDesks, setCashDesks] = useState<CashDesk[]>(readCashDesks);
   const activeCar = useMemo(() => activeFleet.find(c => c.carId === selectedCarId) ?? activeFleet[0], [activeFleet, selectedCarId]);
   // Clé sans carId : un départ est identifié par route+date+heure uniquement
   const departureKey = `${selectedRoute.id}__${travelDate}__${travelTime}`;
+  const departureNumber = useMemo(() => {
+    const trajetStr = `${selectedRoute.depart} → ${selectedRoute.arrivee}`;
+    const heures = new Set(tickets.filter(t => t.trajet === trajetStr && t.date === travelDate).map(t => t.heure));
+    heures.add(travelTime);
+    const sorted = Array.from(heures).sort();
+    return sorted.indexOf(travelTime) + 1;
+  }, [tickets, selectedRoute, travelDate, travelTime]);
+  const departureLabel = departureNumber === 1 ? "1er départ" : `${departureNumber}e départ`;
   const isClosed = closedKeys.includes(departureKey);
   const isDayLocked = dailyLocks.includes(travelDate);
   // Capacité dynamique depuis la flotte — le siège 1 est réservé au chauffeur
@@ -1399,7 +1409,7 @@ const [cashDesks, setCashDesks] = useState<CashDesk[]>(readCashDesks);
     setConnStatus(result.remote ? "online" : "offline");
     refreshTickets();
     showToast(result.remote ? `Ticket ${numero} synchronisé ✓` : `Enregistré localement. ${result.errorMsg || ""}`, result.remote ? "success" : "warning");
-    void printTickets(result.numero, selectedRoute, activeCar, currentVehicleMatricule, activeCarSerial, travelDate, travelTime, selectedSeats, totalAmount, "VENDU", driverName.trim());
+    void printTickets(result.numero, selectedRoute, activeCar, currentVehicleMatricule, activeCarSerial, travelDate, travelTime, selectedSeats, totalAmount, "VENDU", driverName.trim(), departureLabel);
     setSelectedSeats([]);
   }
 
@@ -1421,7 +1431,7 @@ const [cashDesks, setCashDesks] = useState<CashDesk[]>(readCashDesks);
     setConnStatus(result.remote ? "online" : "offline");
     refreshTickets();
     showToast(result.remote ? `Réservation ${numero} synchronisée ✓` : "Réservation enregistrée localement.", result.remote ? "success" : "warning");
-    printTickets(result.numero, selectedRoute, activeCar, currentVehicleMatricule, activeCarSerial, travelDate, travelTime, selectedSeats, totalAmount, "RÉSERVÉ", driverName.trim());
+    printTickets(result.numero, selectedRoute, activeCar, currentVehicleMatricule, activeCarSerial, travelDate, travelTime, selectedSeats, totalAmount, "RÉSERVÉ", driverName.trim(), departureLabel);
     setResNom(""); setResPhone(""); setSelectedSeats([]);
   }
 
