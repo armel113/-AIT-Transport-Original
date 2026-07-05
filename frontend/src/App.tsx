@@ -1984,7 +1984,7 @@ const [cashDesks, setCashDesks] = useState<CashDesk[]>(readCashDesks);
                   </div>
                   <div className="field" style={{ gridColumn: "span 2" }}>
                     <label>Véhicule</label>
-                    <select className="sel" value={selectedCarId} onChange={e => { setSelectedCarId(e.target.value); setSelectedSeats([]); }} disabled={isClosed || isDayLocked || !userRole || hasStartedSales}>
+                    <select className="sel" value={selectedCarId} onChange={e => { const cid = e.target.value; setSelectedCarId(cid); setSelectedSeats([]); const chosen = selectedRoute.fleet.find(x => x.carId === cid); if (chosen) setActualVehicleMatricule(chosen.carMatricule); }} disabled={isClosed || isDayLocked || !userRole || hasStartedSales}>
                       {selectedRoute.fleet.map(c => <option key={c.carId} value={c.carId}>{c.carModel} – {Math.max(c.capacite - 1, 0)} places – {c.carMatricule}</option>)}
                     </select>
                   </div>
